@@ -20,7 +20,8 @@ import {
   Lightbulb,
   Target,
   ShieldCheck,
-  Zap
+  Zap,
+  ShoppingBag
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -39,24 +40,24 @@ import {
 import Papa from 'papaparse';
 import { GoogleGenAI } from "@google/genai";
 
-// --- Brand Palette (Based on provided images) ---
+// --- Brand Palette ---
 const RAMP_COLORS = {
-  bg: '#E8E8E1',      // Cream / Light Beige (from image 1)
-  black: '#1A1A1A',   // Deep Dark Grey (from image 1/2)
-  neon: '#CEFD2F',    // Neon Lime Green (from image 2/3)
+  bg: '#E8E8E1',      
+  black: '#1A1A1A',   
+  neon: '#CEFD2F',    
   white: '#FFFFFF',
-  gray100: '#DCDCD3', // Subtle border color
+  gray100: '#DCDCD3', 
   gray500: '#6B7280',
-  chart: ['#1A1A1A', '#374151', '#4B5563', '#6B7280', '#CEFD2F'] // Monochromatic + Neon pop
+  chart: ['#1A1A1A', '#374151', '#4B5563', '#6B7280', '#CEFD2F'] 
 };
 
 const LOADING_STEPS = [
   "Ingesting document data...",
   "OCR: Extracting ledger balances...",
-  "Cross-referencing accounts and loans...",
+  "Cross-referencing high-volume vendors...",
   "Detecting spending anomalies...",
-  "Calculating category distributions...",
-  "Synthesizing strategic suggestions...",
+  "Calculating ROI-driven distributions...",
+  "Synthesizing high-impact savings strategies...",
   "Finalizing visualization frames..."
 ];
 
@@ -74,7 +75,7 @@ interface FinancialData {
     spendOverTime: { date: string; amount: number }[];
   };
   insights: string[];
-  suggestions: { title: string; description: string; impact: 'High' | 'Medium' | 'Low' }[];
+  suggestions: { title: string; description: string; impact: 'High' | 'Medium' | 'Low'; potentialSavings: number }[];
 }
 
 type GeminiPayload = {
@@ -158,9 +159,13 @@ const App = () => {
       setError(null);
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const prompt = `Analyze this financial statement. Extract all transaction data and provide deep strategic insights. 
+      const prompt = `Analyze this financial statement with the mindset of a Ramp CFO. Ramp values frugality, significant cost savings, and executive efficiency.
 
-        CRITICAL: The 'categoryDistribution' values must be valid percentages (0-100) representing the share of total spend for that category. They MUST sum to 100.
+        PRIORITIZATION RULES:
+        1. 'Impact' is strictly based on ROI. A $1400 expense at a vendor like Walmart is "High Impact", whereas a one-off $30 NSF fee is "Low Impact".
+        2. Suggestions MUST target the largest spend areas. If a user spends thousands at one vendor, suggest bulk consolidation, contract negotiation, or alternate sourcing.
+        3. 'Insights' should detect patterns (e.g., "Frequent high-value grocery runs" or "Rising recurring SaaS costs").
+        4. Ensure 'categoryDistribution' percentage fields are accurate and based on TOTAL spend volume.
 
         Return a JSON object:
         {
@@ -172,7 +177,7 @@ const App = () => {
             "spendOverTime": [{ "date": string, "amount": number }]
           },
           "insights": [string],
-          "suggestions": [{ "title": string, "description": string, "impact": "High" | "Medium" | "Low" }]
+          "suggestions": [{ "title": string, "description": string, "impact": "High" | "Medium" | "Low", "potentialSavings": number }]
         }`;
 
       const parts: any[] = [];
@@ -188,7 +193,7 @@ const App = () => {
         contents: { parts },
         config: {
           responseMimeType: "application/json",
-          thinkingConfig: { thinkingBudget: 3000 }
+          thinkingConfig: { thinkingBudget: 4000 } // Increased thinking budget for better prioritization
         }
       });
 
@@ -228,7 +233,6 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-[#E8E8E1] text-[#1A1A1A] font-sans selection:bg-[#CEFD2F] selection:text-black pb-20">
-      {/* Sidebar - Brand Minimalist */}
       <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-[#DCDCD3] p-6 hidden lg:flex flex-col z-10">
         <div className="flex items-center gap-2 mb-10 px-2">
           <RampLogo className="text-black" />
@@ -252,166 +256,111 @@ const App = () => {
       <main className="lg:ml-64 p-8 max-w-[1400px] mx-auto">
         <header className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-16">
           <div className="space-y-1">
-            <h1 className="text-5xl font-black tracking-tightest text-black">Insights.</h1>
-            <p className="text-[#6B7280] font-bold text-lg">AI-driven financial orchestration.</p>
+            <h1 className="text-5xl font-black tracking-tightest text-black">CFO Insights.</h1>
+            <p className="text-[#6B7280] font-bold text-lg">Optimizing liquidity through strategic frugality.</p>
           </div>
           <div className="flex flex-col items-end gap-6">
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => fileInputRef.current?.click()} 
-                className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-[#333333] transition-all text-sm font-black shadow-lg"
-              >
-                <Upload className="w-4 h-4" /> Upload Document
-              </button>
+              <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-[#333333] transition-all text-sm font-black shadow-lg"><Upload className="w-4 h-4" /> Upload Document</button>
               <input type="file" ref={fileInputRef} className="hidden" accept=".csv,.txt,.pdf" onChange={handleFileUpload} />
-              {data && (
-                <button 
-                  onClick={() => window.print()} 
-                  className="flex items-center gap-2 px-6 py-3 border border-[#DCDCD3] bg-white text-black rounded-xl hover:bg-[#F0F0E8] text-sm font-black transition-colors"
-                >
-                  <Download className="w-4 h-4" /> Export
-                </button>
-              )}
+              {data && <button onClick={() => window.print()} className="flex items-center gap-2 px-6 py-3 border border-[#DCDCD3] bg-white text-black rounded-xl hover:bg-[#F0F0E8] text-sm font-black transition-colors"><Download className="w-4 h-4" /> Export</button>}
             </div>
           </div>
         </header>
 
-        {error && <div className="mb-8 p-4 bg-red-50 border border-red-100 text-red-700 rounded-xl flex items-center gap-3"><AlertCircle className="w-5 h-5" /> <span className="text-sm font-black">{error}</span></div>}
-
         {loading && (
           <div className="flex flex-col items-center justify-center py-32 text-center max-w-lg mx-auto animate-in fade-in">
-            <div className="relative mb-12">
-              <div className="absolute inset-0 bg-black rounded-full animate-ping opacity-5"></div>
-              <div className="relative bg-black rounded-full p-8 shadow-2xl">
-                <Loader2 className="w-14 h-14 text-[#CEFD2F] animate-spin" />
-              </div>
-            </div>
+            <div className="relative mb-12"><div className="absolute inset-0 bg-black rounded-full animate-ping opacity-5"></div><div className="relative bg-black rounded-full p-8 shadow-2xl"><Loader2 className="w-14 h-14 text-[#CEFD2F] animate-spin" /></div></div>
             <div className="w-full space-y-8">
-              <div className="h-2 w-full bg-[#DCDCD3] rounded-full overflow-hidden">
-                <div className="h-full bg-black transition-all duration-1000 ease-in-out" style={{ width: `${((loadingStepIdx + 1) / LOADING_STEPS.length) * 100}%` }}></div>
-              </div>
-              <div className="space-y-4">
-                <h2 className="text-3xl font-black text-black">Neural Processing</h2>
-                <div className="flex items-center justify-center gap-3 text-[#6B7280] font-black min-h-[24px] uppercase text-[10px] tracking-[0.2em]">
-                  <div className="w-2 h-2 rounded-full bg-[#CEFD2F] animate-pulse"></div>
-                  <p>{LOADING_STEPS[loadingStepIdx]}</p>
-                </div>
-              </div>
+              <div className="h-2 w-full bg-[#DCDCD3] rounded-full overflow-hidden"><div className="h-full bg-black transition-all duration-1000 ease-in-out" style={{ width: `${((loadingStepIdx + 1) / LOADING_STEPS.length) * 100}%` }}></div></div>
+              <div className="space-y-4"><h2 className="text-3xl font-black text-black">Strategic Processing</h2><div className="flex items-center justify-center gap-3 text-[#6B7280] font-black min-h-[24px] uppercase text-[10px] tracking-[0.2em]"><div className="w-2 h-2 rounded-full bg-[#CEFD2F] animate-pulse"></div><p>{LOADING_STEPS[loadingStepIdx]}</p></div></div>
             </div>
           </div>
         )}
 
         {!data && !loading && (
           <div className="border border-[#DCDCD3] rounded-[2.5rem] p-32 flex flex-col items-center text-center bg-white shadow-sm transition-all hover:shadow-xl">
-            <div className="w-24 h-24 bg-[#E8E8E1] rounded-[2rem] flex items-center justify-center mb-10 shadow-inner">
-              <FileText className="w-12 h-12 text-black" />
-            </div>
-            <h2 className="text-5xl font-black mb-4 text-black tracking-tightest">Ready for analysis.</h2>
-            <p className="text-[#6B7280] max-w-sm mb-12 text-xl font-bold leading-tight">
-              Upload your BECU, Chase, or custom transaction data to generate your dash.
-            </p>
-            <button 
-              onClick={() => fileInputRef.current?.click()} 
-              className="px-12 py-6 bg-[#CEFD2F] text-black rounded-2xl font-black hover:brightness-110 transition-all flex items-center gap-4 group text-2xl shadow-[0_12px_40px_rgba(206,253,47,0.3)]"
-            >
-              Get Started <ChevronRight className="w-8 h-8 group-hover:translate-x-2 transition-transform" />
-            </button>
+            <div className="w-24 h-24 bg-[#E8E8E1] rounded-[2rem] flex items-center justify-center mb-10 shadow-inner"><FileText className="w-12 h-12 text-black" /></div>
+            <h2 className="text-5xl font-black mb-4 text-black tracking-tightest">Ramp Intelligence.</h2>
+            <p className="text-[#6B7280] max-w-sm mb-12 text-xl font-bold leading-tight">Identify high-impact savings across your institutional ledger.</p>
+            <button onClick={() => fileInputRef.current?.click()} className="px-12 py-6 bg-[#CEFD2F] text-black rounded-2xl font-black hover:brightness-110 transition-all flex items-center gap-4 group text-2xl shadow-[0_12px_40px_rgba(206,253,47,0.3)]">Analyze Data <ChevronRight className="w-8 h-8 group-hover:translate-x-2 transition-transform" /></button>
           </div>
         )}
 
         {data && !loading && (
           <div className="space-y-12 animate-in fade-in duration-1000 slide-in-from-bottom-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard title="Spend" value={`$${Number(data.summary.totalSpend).toLocaleString()}`} change="+12.5%" isPositive={false} />
-              <StatCard title="Budget" value={`$${Number(data.summary.totalBudget).toLocaleString()}`} change="-2.1%" isPositive={true} />
-              <StatCard title="Burn" value={String(data.summary.burnRate)} change="Calc." isPositive={true} />
-              <StatCard title="Lead Cat." value={String(data.summary.topCategory)} change="High" isPositive={false} />
+              <StatCard title="Gross Outflow" value={`$${Number(data.summary.totalSpend).toLocaleString()}`} change="+12.5%" isPositive={false} />
+              <StatCard title="Treasury Allocation" value={`$${Number(data.summary.totalBudget).toLocaleString()}`} change="-2.1%" isPositive={true} />
+              <StatCard title="Burn Rate" value={String(data.summary.burnRate)} change="Calc." isPositive={true} />
+              <StatCard title="Top Spend Area" value={String(data.summary.topCategory)} change="Volume" isPositive={false} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <Card title="Spend Velocity" subtitle="Daily transaction intensity" className="lg:col-span-2">
+              <Card title="Spend Intensity" subtitle="High-impact transaction timeline" className="lg:col-span-2">
                 <div className="w-full h-[400px] mt-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.charts.spendOverTime} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={RAMP_COLORS.black} stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor={RAMP_COLORS.black} stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
+                      <defs><linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={RAMP_COLORS.black} stopOpacity={0.15}/><stop offset="95%" stopColor={RAMP_COLORS.black} stopOpacity={0}/></linearGradient></defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8E1" />
                       <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280', fontWeight: 800}} minTickGap={40} dy={10} />
                       <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280', fontWeight: 800}} tickFormatter={(val) => `$${val}`} dx={-10} />
                       <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', background: '#1A1A1A', color: '#FFFFFF', fontWeight: 900 }} cursor={{stroke: '#CEFD2F', strokeWidth: 2}} />
-                      <Area type="stepAfter" dataKey="amount" stroke={RAMP_COLORS.black} strokeWidth={3} fillOpacity={1} fill="url(#colorSpend)" animationDuration={1500} />
+                      <Area type="monotone" dataKey="amount" stroke={RAMP_COLORS.black} strokeWidth={3} fillOpacity={1} fill="url(#colorSpend)" animationDuration={1500} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </Card>
 
-              <Card title="Allocation" subtitle="Portfolio by category">
-                <div className="w-full h-[280px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RePieChart>
-                      <Pie
-                        data={data.charts.categoryDistribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={70}
-                        outerRadius={100}
-                        paddingAngle={8}
-                        dataKey="percentage"
-                        animationDuration={1500}
-                      >
-                        {data.charts.categoryDistribution.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={RAMP_COLORS.chart[index % RAMP_COLORS.chart.length]} stroke="none" />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => `${Number(value).toFixed(2)}%`} contentStyle={{ borderRadius: '16px', background: '#1A1A1A', border: 'none', color: '#FFF' }} />
-                    </RePieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-8 space-y-4">
-                  {data.charts.categoryDistribution.slice(0, 5).map((item, i) => (
-                    <div key={i} className="flex items-center justify-between group cursor-default">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: RAMP_COLORS.chart[i % RAMP_COLORS.chart.length] }}></div>
-                        <span className="text-[#1A1A1A] font-black text-[11px] uppercase tracking-tight group-hover:translate-x-1 transition-transform">{String(item.category)}</span>
+              <Card title="Top Vendors" subtitle="Highest volume partners">
+                <div className="space-y-6 mt-6">
+                  {data.charts.vendorSpend?.map((vendor, i) => (
+                    <div key={i} className="group">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[11px] font-black uppercase tracking-tight flex items-center gap-2">
+                          <ShoppingBag className="w-3 h-3 text-gray-400" />
+                          {vendor.vendor}
+                        </span>
+                        <span className="font-black tabular-nums text-sm">${Number(vendor.amount).toLocaleString()}</span>
                       </div>
-                      <span className="font-black text-black tabular-nums text-sm">{Number(item.percentage).toFixed(1)}%</span>
+                      <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-black transition-all duration-1000" 
+                          style={{ width: `${(vendor.amount / data.summary.totalSpend) * 100}%` }}
+                        ></div>
+                      </div>
                     </div>
                   ))}
+                  {(!data.charts.vendorSpend || data.charts.vendorSpend.length === 0) && (
+                    <div className="py-20 text-center opacity-20"><ShoppingBag className="w-12 h-12 mx-auto" /></div>
+                  )}
                 </div>
               </Card>
             </div>
 
-            {/* Strategic Intelligence - Brand Full Width Section */}
             <section className="pt-20 space-y-12">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-black pb-8">
                 <div className="flex items-center gap-6">
                   <div className="p-5 bg-black text-[#CEFD2F] rounded-2xl shadow-xl"><Lightbulb className="w-10 h-10" /></div>
                   <div>
-                    <h2 className="text-6xl font-black text-black tracking-tightest">Strategy.</h2>
-                    <p className="text-xl text-[#6B7280] font-bold">Financial growth vectors optimized by AI.</p>
+                    <h2 className="text-6xl font-black text-black tracking-tightest">Efficiency Protocol.</h2>
+                    <p className="text-xl text-[#6B7280] font-bold">Prioritizing high-ROI savings opportunities.</p>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                {/* Insights Column */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-3 px-2">
                     <History className="w-5 h-5 text-black" />
-                    <h3 className="text-sm font-black uppercase tracking-[0.3em] text-black">Ledger Anomalies</h3>
+                    <h3 className="text-sm font-black uppercase tracking-[0.3em] text-black">Pattern Analysis</h3>
                   </div>
                   <div className="grid gap-6">
                     {data.insights.map((insight, idx) => (
                       <div key={idx} className="p-8 bg-white border border-[#DCDCD3] rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex items-start gap-6 border-l-[12px] border-l-black">
-                        <div className="w-14 h-14 rounded-2xl bg-[#E8E8E1] flex items-center justify-center flex-shrink-0 group-hover:bg-[#CEFD2F] group-hover:text-black transition-all duration-500">
-                          <TrendingUp className="w-7 h-7" />
-                        </div>
+                        <div className="w-14 h-14 rounded-2xl bg-[#E8E8E1] flex items-center justify-center flex-shrink-0 group-hover:bg-[#CEFD2F] group-hover:text-black transition-all duration-500"><TrendingUp className="w-7 h-7" /></div>
                         <div className="flex-1">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Insight #{idx + 1}</p>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Observation #{idx + 1}</p>
                           <p className="text-xl text-[#1A1A1A] leading-tight font-black tracking-tight">{insight}</p>
                         </div>
                       </div>
@@ -419,30 +368,34 @@ const App = () => {
                   </div>
                 </div>
 
-                {/* Suggestions Column */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-3 px-2">
                     <Target className="w-5 h-5 text-black" />
-                    <h3 className="text-sm font-black uppercase tracking-[0.3em] text-black">Strategic Vectors</h3>
+                    <h3 className="text-sm font-black uppercase tracking-[0.3em] text-black">Strategic ROI High Impact</h3>
                   </div>
                   <div className="grid gap-6">
-                    {data.suggestions?.map((suggestion, idx) => (
-                      <div key={idx} className="p-8 bg-black text-white rounded-[2rem] shadow-2xl relative overflow-hidden group">
+                    {data.suggestions?.sort((a, b) => b.potentialSavings - a.potentialSavings).map((suggestion, idx) => (
+                      <div key={idx} className={`p-8 rounded-[2rem] shadow-2xl relative overflow-hidden group ${suggestion.impact === 'High' ? 'bg-black text-white' : 'bg-white border border-[#DCDCD3] text-black'}`}>
                         <div className="absolute top-0 right-0 p-8">
-                           <Zap className={`w-8 h-8 ${suggestion.impact === 'High' ? 'text-[#CEFD2F]' : 'text-gray-600 opacity-20'}`} />
+                           <Zap className={`w-8 h-8 ${suggestion.impact === 'High' ? 'text-[#CEFD2F]' : 'text-gray-300'}`} />
                         </div>
                         <div className="flex flex-col h-full">
                           <div className="flex items-center gap-3 mb-6">
                             <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                              suggestion.impact === 'High' ? 'bg-[#CEFD2F] text-black' : 'bg-white/10 text-white'
+                              suggestion.impact === 'High' ? 'bg-[#CEFD2F] text-black' : 'bg-gray-100 text-black'
                             }`}>
                               {suggestion.impact} Impact
                             </span>
+                            {suggestion.potentialSavings > 0 && (
+                              <span className="text-[10px] font-black uppercase tracking-widest text-[#CEFD2F] bg-white/10 px-3 py-1 rounded-full">
+                                Est. Save: ${suggestion.potentialSavings.toLocaleString()}
+                              </span>
+                            )}
                           </div>
                           <h4 className="text-3xl font-black mb-4 tracking-tightest leading-none">{suggestion.title}</h4>
-                          <p className="text-gray-400 text-lg font-bold leading-snug flex-1">{suggestion.description}</p>
-                          <div className="mt-8 flex items-center gap-3 text-sm font-black text-[#CEFD2F] hover:translate-x-2 transition-transform cursor-pointer w-fit uppercase tracking-widest">
-                            Execute Protocol <ChevronRight className="w-5 h-5" />
+                          <p className={`text-lg font-bold leading-snug flex-1 ${suggestion.impact === 'High' ? 'text-gray-400' : 'text-gray-500'}`}>{suggestion.description}</p>
+                          <div className={`mt-8 flex items-center gap-3 text-sm font-black hover:translate-x-2 transition-transform cursor-pointer w-fit uppercase tracking-widest ${suggestion.impact === 'High' ? 'text-[#CEFD2F]' : 'text-black'}`}>
+                            Automate Savings <ChevronRight className="w-5 h-5" />
                           </div>
                         </div>
                       </div>
@@ -450,47 +403,7 @@ const App = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Brand Action Modules */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-                <div className="p-10 bg-white border border-[#DCDCD3] rounded-[2.5rem] flex flex-col justify-between min-h-[220px] shadow-sm hover:-translate-y-2 transition-transform">
-                  <div>
-                    <ShieldCheck className="w-12 h-12 mb-6 text-black" />
-                    <h5 className="font-black text-2xl tracking-tightest">Treasury Lock</h5>
-                    <p className="text-sm font-bold text-gray-500 mt-2">Activate real-time leakage detection on all verified accounts.</p>
-                  </div>
-                  <button className="mt-8 w-full py-4 bg-black text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#333]">Verify Identity</button>
-                </div>
-                <div className="p-10 bg-[#CEFD2F] border border-black/10 rounded-[2.5rem] flex flex-col justify-between min-h-[220px] shadow-sm hover:-translate-y-2 transition-transform">
-                  <div>
-                    <Zap className="w-12 h-12 mb-6 text-black" />
-                    <h5 className="font-black text-2xl tracking-tightest">Liquidity Flow</h5>
-                    <p className="text-sm font-bold text-black/60 mt-2">Rebalance idle assets into high-yield corporate ladders automatically.</p>
-                  </div>
-                  <button className="mt-8 w-full py-4 bg-black text-[#CEFD2F] text-xs font-black uppercase tracking-widest rounded-xl">Optimize Yield</button>
-                </div>
-                <div className="p-10 bg-white border border-[#DCDCD3] rounded-[2.5rem] flex flex-col justify-between min-h-[220px] shadow-sm hover:-translate-y-2 transition-transform">
-                  <div>
-                    <Target className="w-12 h-12 mb-6 text-black" />
-                    <h5 className="font-black text-2xl tracking-tightest">Unified Feed</h5>
-                    <p className="text-sm font-bold text-gray-500 mt-2">Connect external banking APIs for a holistic wealth overview.</p>
-                  </div>
-                  <button className="mt-8 w-full py-4 border border-black text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#F0F0E8]">Add Account</button>
-                </div>
-              </div>
             </section>
-
-            <footer className="mt-32 pt-16 border-t border-[#DCDCD3] text-center">
-              <div className="flex flex-col items-center gap-10">
-                <RampLogo className="text-gray-300 w-32 h-auto" />
-                <div className="flex gap-8 text-[10px] font-black uppercase tracking-[0.4em] text-gray-400">
-                  <span>Privacy Protocol</span>
-                  <span>Compliance</span>
-                  <span>Security Stack</span>
-                </div>
-                <p className="text-[10px] text-gray-300 font-black uppercase tracking-[0.2em] opacity-40">© Ramp Intelligence Lab 2025</p>
-              </div>
-            </footer>
           </div>
         )}
       </main>
