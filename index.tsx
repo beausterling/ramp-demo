@@ -24,7 +24,8 @@ import {
   ShoppingBag,
   Repeat,
   Calendar,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Activity
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -44,26 +45,26 @@ import {
 } from 'recharts';
 import { GoogleGenAI, Type } from "@google/genai";
 
-// --- Brand Palette ---
+// --- Enhanced Brand Palette ---
 const RAMP_COLORS = {
-  bg: '#E8E8E1',      
-  black: '#1A1A1A',   
-  neon: '#CEFD2F',    
+  bg: '#F5F5F2',      // Cleaner off-white
+  black: '#000000',   
+  neon: '#CEFD2F',    // Ramp Volt
   white: '#FFFFFF',
-  gray100: '#DCDCD3', 
-  gray200: '#F0F0E8',
-  gray500: '#6B7280',
-  chart: ['#1A1A1A', '#374151', '#4B5563', '#6B7280', '#525252']
+  gray100: '#E6E6E1', 
+  gray200: '#F0F0ED',
+  gray500: '#666666',
+  chart: ['#000000', '#2B2B2B', '#545454', '#808080', '#A6A6A6']
 };
 
 const LOADING_STEPS = [
-  "Ingesting BECU document structure...",
-  "OCR: Extracting deposit & withdrawal ledgers...",
-  "Cross-referencing summary activity tables...",
-  "Identifying recurring vendor signatures...",
-  "Calculating institution-wide cash flow...",
-  "Synthesizing ROI efficiency protocols...",
-  "Finalizing visualization frames..."
+  "Securing ingestion channel...",
+  "Calibrating OCR engine for ledger depth...",
+  "Extracting account hierarchy...",
+  "Synthesizing transaction metadata...",
+  "Identifying recurring liquidity patterns...",
+  "Generating CFO efficiency reports...",
+  "Finalizing data visualization layers..."
 ];
 
 interface FinancialData {
@@ -102,8 +103,8 @@ type GeminiPayload = {
 
 const RampLogo = ({ className = "" }: { className?: string }) => (
   <svg 
-    width="100" 
-    height="28" 
+    width="85" 
+    height="24" 
     viewBox="0 0 75 20" 
     fill="none" 
     xmlns="http://www.w3.org/2000/svg" 
@@ -117,13 +118,13 @@ const RampLogo = ({ className = "" }: { className?: string }) => (
 );
 
 const Toggle = ({ options, active, onChange }: { options: string[], active: string, onChange: (val: string) => void }) => (
-  <div className="flex bg-[#F0F0E8] p-1 rounded-lg border border-[#DCDCD3]">
+  <div className="flex bg-[#E6E6E1] p-1 rounded-full border border-[#D1D1CB]">
     {options.map((opt) => (
       <button
         key={opt}
         onClick={() => onChange(opt)}
-        className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] rounded-md transition-all ${
-          active === opt ? 'bg-black text-white shadow-sm' : 'text-gray-400 hover:text-black'
+        className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] rounded-full transition-all duration-300 ${
+          active === opt ? 'bg-black text-white shadow-md' : 'text-gray-500 hover:text-black'
         }`}
       >
         {opt}
@@ -132,17 +133,19 @@ const Toggle = ({ options, active, onChange }: { options: string[], active: stri
   </div>
 );
 
-const Card = ({ children, title, className = "", subtitle = "", headerAction, padding = "px-8 pt-12 pb-8" }: { children?: React.ReactNode, title?: string, className?: string, subtitle?: string, headerAction?: React.ReactNode, padding?: string }) => (
-  <div className={`bg-white border border-[#DCDCD3] rounded-2xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 ${className}`}>
+const Card = ({ children, title, className = "", subtitle = "", headerAction, padding = "px-8 pt-10 pb-10" }: { children?: React.ReactNode, title?: string, className?: string, subtitle?: string, headerAction?: React.ReactNode, padding?: string }) => (
+  <div className={`bg-white border border-[#D1D1CB] rounded-[2rem] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.06)] transition-all duration-500 ease-out ${className}`}>
     {(title || subtitle || headerAction) && (
-      <div className="px-8 pt-12 pb-6 flex justify-between items-start gap-4">
+      <div className="px-8 pt-10 pb-2 flex justify-between items-start gap-4">
         <div>
-          {title && <h3 className="text-sm font-black text-black uppercase tracking-[0.05em] mb-1">{title}</h3>}
-          {subtitle && <p className="text-xs text-gray-400 font-bold leading-tight">{subtitle}</p>}
+          {title && <h3 className="text-xs font-black text-black uppercase tracking-[0.2em] mb-1.5">{title}</h3>}
+          {subtitle && <p className="text-[11px] text-gray-400 font-bold leading-tight uppercase tracking-widest">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-3">
           {headerAction}
-          <MoreHorizontal className="w-5 h-5 text-gray-300 cursor-pointer mt-1" />
+          <div className="p-2 hover:bg-gray-50 rounded-full transition-colors cursor-pointer group">
+            <MoreHorizontal className="w-5 h-5 text-gray-300 group-hover:text-black transition-colors" />
+          </div>
         </div>
       </div>
     )}
@@ -153,19 +156,20 @@ const Card = ({ children, title, className = "", subtitle = "", headerAction, pa
 );
 
 const StatCard = ({ title, value, change, isPositive }: { title: string, value: string, change: string, isPositive: boolean }) => {
-  const isNeutral = title.toLowerCase().includes('cash flow');
-  const textColor = isNeutral ? (value.startsWith('+') ? 'text-green-600' : 'text-red-600') : (isPositive ? 'text-green-600' : 'text-red-600');
+  const isNeutral = title.toLowerCase().includes('cash flow') || title.toLowerCase().includes('top area');
   
   return (
-    <Card className="flex flex-col justify-between h-full bg-white" padding="px-8 pt-24 pb-12">
-      <div className="flex justify-between items-start mb-8">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</span>
-        <div className={`flex items-center text-[11px] font-black px-2 py-0.5 rounded-full ${isPositive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-          {isPositive ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
-          {change}
-        </div>
+    <Card className="flex flex-col justify-between h-full bg-white group" padding="px-8 pt-16 pb-12">
+      <div className="flex justify-between items-start mb-10">
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">{title}</span>
+        {!isNeutral && (
+          <div className={`flex items-center text-[10px] font-black px-3 py-1 rounded-full ${isPositive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            {isPositive ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
+            {change}
+          </div>
+        )}
       </div>
-      <div className={`text-4xl font-black tracking-tightest leading-none ${title.toLowerCase() === 'cash flow' ? textColor : 'text-black'}`}>
+      <div className={`text-4xl font-black tracking-tightest leading-none text-black group-hover:scale-[1.02] transition-transform origin-left duration-300`}>
         {value}
       </div>
     </Card>
@@ -175,8 +179,8 @@ const StatCard = ({ title, value, change, isPositive }: { title: string, value: 
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black p-5 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-md">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">
+      <div className="bg-black/95 p-5 rounded-[2rem] border border-white/10 shadow-2xl backdrop-blur-xl">
+        <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">
           {payload[0].name}
         </p>
         <p className="text-2xl font-black text-[#CEFD2F] tabular-nums">
@@ -203,7 +207,7 @@ const App = () => {
     if (loading) {
       interval = window.setInterval(() => {
         setLoadingStepIdx((prev) => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev));
-      }, 3500);
+      }, 3000);
     } else {
       setLoadingStepIdx(0);
     }
@@ -216,18 +220,18 @@ const App = () => {
       setError(null);
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const prompt = `Task: Institutional-grade ledger analysis for a BECU Bank Statement.
-      Extract all account activity across multiple pages.
+      const prompt = `Task: Institutional-grade ledger analysis.
+      Extract all account activity from the provided data.
       
-      CORE REQUIREMENTS:
-      1. Aggregate "Member Advantage Savings" and "Checking" balances.
-      2. Sum all "Withdrawals" for totalSpend.
-      3. Identify "Deposits" vs "Withdrawals" to calculate signed Cash Flow.
-      4. Group transactions into logical business categories (Food, Transfers, Utilities, etc.).
-      5. Look for recurring vendor signatures (e.g., Walmart, Shell, Safeway).
-      
-      IMPORTANT: This is a 7-page document. Ensure you correlate summary tables on page 1 with transaction details on pages 2-7. 
-      If a section is empty, return an empty array [] for that key.`;
+      CORE INSTRUCTIONS:
+      1. Aggregate all checking/savings summaries.
+      2. Sum total spend (withdrawals).
+      3. Calculate net cash flow (Deposits - Withdrawals).
+      4. Group transactions into high-level logical categories.
+      5. Identify top vendors.
+      6. Return time-series data for spend intensity.
+
+      FORMAT: Return valid JSON matching the schema. No conversational text.`;
 
       const responseSchema = {
         type: Type.OBJECT,
@@ -285,27 +289,26 @@ const App = () => {
         parts.push({ inlineData: payload.pdf });
         parts.push({ text: prompt });
       } else if (payload.text) {
-        parts.push({ text: `${prompt}\n\nData:\n${payload.text.slice(0, 30000)}` });
+        parts.push({ text: `${prompt}\n\nData:\n${payload.text}` });
       }
 
       const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview", 
+        model: "gemini-3-flash-preview",
         contents: { parts },
         config: {
           responseMimeType: "application/json",
           responseSchema: responseSchema,
-          thinkingConfig: { thinkingBudget: 16384 } // High budget for multi-page banking statement
         }
       });
 
       const text = response.text;
-      if (!text) throw new Error("Processing failed: AI returned empty ledger.");
+      if (!text) throw new Error("Empty response from analysis core.");
       
       const parsed = JSON.parse(text) as FinancialData;
       setData(parsed);
     } catch (err: any) {
-      console.error("Gemini Analysis Error:", err);
-      setError(`Extraction Blocked: ${err.message || "Ensure the BECU statement is fully uploaded."}`);
+      console.error(err);
+      setError(`Extraction Blocked: ${err.message || "Generic System Failure"}`);
     } finally {
       setLoading(false);
     }
@@ -335,79 +338,100 @@ const App = () => {
   const cashFlowValue = useMemo(() => {
     if (!data) return '$0';
     const val = data.summary.cashFlow;
-    const sign = val >= 0 ? '+' : '';
+    const sign = val >= 0 ? '+' : '-';
     return `${sign}$${Math.abs(val).toLocaleString()}`;
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-[#E8E8E1] text-[#1A1A1A] font-sans selection:bg-[#CEFD2F] selection:text-black pb-20">
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-[#DCDCD3] p-6 hidden lg:flex flex-col z-10">
-        <div className="flex items-center gap-2 mb-10 px-2">
+    <div className="min-h-screen bg-[#F5F5F2] text-black font-sans selection:bg-[#CEFD2F] selection:text-black overflow-x-hidden">
+      {/* Background Pattern */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, black 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
+
+      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-[#D1D1CB] p-8 hidden lg:flex flex-col z-20 shadow-sm">
+        <div className="flex items-center gap-2 mb-14 px-1">
           <RampLogo className="text-black" />
         </div>
-        <nav className="flex-1 space-y-1">
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-sm font-black text-black bg-[#E8E8E1] rounded-xl transition-all"><LayoutDashboard className="w-4 h-4" /> Dashboard</button>
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-sm font-black text-gray-400 hover:text-black hover:bg-[#F0F0E8] rounded-xl transition-all"><Wallet className="w-4 h-4" /> Treasury</button>
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-sm font-black text-gray-400 hover:text-black hover:bg-[#F0F0E8] rounded-xl transition-all"><Repeat className="w-4 h-4" /> Subscriptions</button>
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-sm font-black text-gray-400 hover:text-black hover:bg-[#F0F0E8] rounded-xl transition-all"><History className="w-4 h-4" /> Activity</button>
+        <nav className="flex-1 space-y-2">
+          <button className="flex items-center gap-4 w-full px-5 py-3.5 text-xs font-black text-black bg-[#CEFD2F] rounded-2xl shadow-sm transition-all uppercase tracking-widest"><LayoutDashboard className="w-4 h-4" /> Dashboard</button>
+          <button className="flex items-center gap-4 w-full px-5 py-3.5 text-xs font-black text-gray-500 hover:text-black hover:bg-gray-50 rounded-2xl transition-all uppercase tracking-widest"><Wallet className="w-4 h-4" /> Treasury</button>
+          <button className="flex items-center gap-4 w-full px-5 py-3.5 text-xs font-black text-gray-500 hover:text-black hover:bg-gray-50 rounded-2xl transition-all uppercase tracking-widest"><Repeat className="w-4 h-4" /> Subscriptions</button>
+          <button className="flex items-center gap-4 w-full px-5 py-3.5 text-xs font-black text-gray-500 hover:text-black hover:bg-gray-50 rounded-2xl transition-all uppercase tracking-widest"><History className="w-4 h-4" /> Activity</button>
         </nav>
-        <div className="mt-auto pt-6 border-t border-[#F0F0E8]">
-          <div className="p-5 bg-black text-white rounded-[1.5rem] relative overflow-hidden group">
-            <Zap className="absolute -right-2 -bottom-2 w-16 h-16 opacity-10 group-hover:scale-110 transition-transform" />
-            <p className="text-[10px] font-black mb-1 opacity-60 uppercase tracking-widest">Efficiency Mode</p>
-            <p className="text-sm mb-4 font-bold leading-snug">Ramp AI identifies high-impact savings automatically.</p>
-            <button className="w-full py-2 bg-[#CEFD2F] text-black text-xs font-black rounded-lg hover:brightness-110 transition-all">Go Enterprise</button>
+        <div className="mt-auto pt-8 border-t border-gray-100">
+          <div className="p-6 bg-black text-white rounded-[2rem] relative overflow-hidden group">
+            <Zap className="absolute -right-4 -bottom-4 w-20 h-20 opacity-10 group-hover:scale-110 transition-transform duration-700" />
+            <div className="relative z-10">
+              <p className="text-[9px] font-black mb-1.5 opacity-60 uppercase tracking-[0.3em]">Efficiency Mode</p>
+              <p className="text-xs mb-6 font-bold leading-relaxed text-gray-300">Ramp AI identifies high-impact savings automatically.</p>
+              <button className="w-full py-2.5 bg-[#CEFD2F] text-black text-[10px] font-black rounded-xl hover:brightness-110 active:scale-95 transition-all uppercase tracking-widest">Enable Insights</button>
+            </div>
           </div>
         </div>
       </aside>
 
-      <main className="lg:ml-64 p-8 max-w-[1400px] mx-auto">
-        <header className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-16">
-          <div className="space-y-1">
-            <h1 className="text-5xl font-black tracking-tightest text-black">CFO Insights.</h1>
-            <p className="text-[#6B7280] font-bold text-lg">Automated savings for high-velocity teams.</p>
+      <main className="lg:ml-64 p-8 md:p-12 max-w-[1500px] mx-auto relative z-10 min-h-screen">
+        <header className="flex flex-col md:flex-row md:items-start justify-between gap-10 mb-20">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-[#CEFD2F] animate-pulse"></div>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">Intelligence Core v3.1</span>
+            </div>
+            <h1 className="text-7xl font-black tracking-tightest text-black leading-none">CFO Insights.</h1>
+            <p className="text-gray-500 font-bold text-xl tracking-tight">Enterprise liquidity analysis in millisecond timeframes.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-[#333333] transition-all text-sm font-black shadow-lg">
-              <Upload className="w-4 h-4" /> Upload
+          <div className="flex items-center gap-4 flex-wrap">
+            <button 
+              onClick={() => fileInputRef.current?.click()} 
+              className="group relative flex items-center gap-3 px-8 py-4 bg-black text-white rounded-2xl hover:bg-black/90 transition-all text-xs font-black shadow-xl active:scale-95 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-[#CEFD2F] translate-y-full group-hover:translate-y-0 transition-transform duration-300 -z-10"></div>
+              <Upload className="w-4 h-4 group-hover:text-black transition-colors" /> 
+              <span className="group-hover:text-black transition-colors uppercase tracking-[0.15em]">Secure Upload</span>
             </button>
             <input type="file" ref={fileInputRef} className="hidden" accept=".csv,.txt,.pdf" onChange={handleFileUpload} />
-            {data && <button onClick={() => window.print()} className="flex items-center gap-2 px-6 py-3 border border-[#DCDCD3] bg-white text-black rounded-xl hover:bg-[#F0F0E8] text-sm font-black transition-colors"><Download className="w-4 h-4" /> Export</button>}
+            {data && (
+              <button onClick={() => window.print()} className="flex items-center gap-3 px-8 py-4 border border-[#D1D1CB] bg-white text-black rounded-2xl hover:bg-gray-50 text-xs font-black transition-all shadow-sm active:scale-95 uppercase tracking-[0.15em]">
+                <Download className="w-4 h-4" /> Export Report
+              </button>
+            )}
           </div>
         </header>
 
         {error && (
-          <div className="mb-12 p-8 bg-red-50 border-2 border-red-200 text-red-800 rounded-3xl flex items-start gap-6 animate-in slide-in-from-top-4 duration-500">
-            <div className="p-3 bg-red-100 rounded-2xl">
-              <AlertCircle className="w-8 h-8 text-red-600" />
+          <div className="mb-16 p-10 bg-red-50 border border-red-100 text-red-900 rounded-[2.5rem] flex items-start gap-8 animate-in slide-in-from-top-4 duration-500">
+            <div className="p-4 bg-white rounded-2xl shadow-sm">
+              <AlertCircle className="w-10 h-10 text-red-500" />
             </div>
-            <div className="flex-1 pt-1">
-              <h3 className="text-lg font-black uppercase tracking-widest mb-1">Extraction failure</h3>
-              <p className="text-sm font-bold opacity-80 leading-relaxed">{error}</p>
-              <div className="flex gap-3 mt-4">
-                <button onClick={() => fileInputRef.current?.click()} className="px-5 py-2 bg-red-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-900 transition-colors">Retry Upload</button>
-                <button onClick={() => setError(null)} className="px-5 py-2 bg-white border border-red-200 text-red-800 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-50 transition-colors">Dismiss</button>
+            <div className="flex-1 pt-2">
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] mb-2 text-red-800">System Extraction Alert</h3>
+              <p className="text-base font-bold opacity-80 leading-relaxed max-w-2xl">{error}</p>
+              <div className="flex gap-4 mt-8">
+                <button onClick={() => fileInputRef.current?.click()} className="px-6 py-3 bg-red-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-950 transition-colors shadow-lg">Retry Protocol</button>
+                <button onClick={() => setError(null)} className="px-6 py-3 bg-white border border-red-100 text-red-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-100/50 transition-colors">Dismiss</button>
               </div>
             </div>
           </div>
         )}
 
         {loading && (
-          <div className="flex flex-col items-center justify-center py-40 text-center max-w-lg mx-auto animate-in fade-in">
-            <div className="relative mb-14">
-              <div className="absolute inset-0 bg-black rounded-full animate-ping opacity-5"></div>
-              <div className="relative bg-black rounded-full p-10 shadow-2xl">
-                <Loader2 className="w-16 h-16 text-[#CEFD2F] animate-spin" />
+          <div className="flex flex-col items-center justify-center py-48 text-center max-w-xl mx-auto animate-in fade-in zoom-in-95 duration-1000">
+            <div className="relative mb-20 scale-125">
+              <div className="absolute inset-0 bg-[#CEFD2F] rounded-full animate-ping opacity-10 blur-xl"></div>
+              <div className="relative bg-black rounded-[2.5rem] p-12 shadow-3xl">
+                <Loader2 className="w-16 h-16 text-[#CEFD2F] animate-spin stroke-[3]" />
               </div>
             </div>
-            <div className="w-full space-y-10">
-              <div className="h-3 w-full bg-[#DCDCD3] rounded-full overflow-hidden">
-                <div className="h-full bg-black transition-all duration-1000 ease-in-out" style={{ width: `${((loadingStepIdx + 1) / LOADING_STEPS.length) * 100}%` }}></div>
+            <div className="w-full space-y-12">
+              <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                <div 
+                  className="h-full bg-black transition-all duration-700 ease-out shadow-[0_0_12px_rgba(206,253,47,0.5)]" 
+                  style={{ width: `${((loadingStepIdx + 1) / LOADING_STEPS.length) * 100}%` }}
+                ></div>
               </div>
               <div className="space-y-4">
-                <h2 className="text-4xl font-black text-black tracking-tightest uppercase">Ramp Extraction</h2>
-                <div className="flex items-center justify-center gap-3 text-[#6B7280] font-black uppercase text-xs tracking-[0.25em]">
-                  <p>{LOADING_STEPS[loadingStepIdx]}</p>
+                <h2 className="text-3xl font-black text-black tracking-tightest uppercase italic">Processing Ledger</h2>
+                <div className="flex items-center justify-center gap-4 text-gray-400 font-black uppercase text-[10px] tracking-[0.3em]">
+                  <p className="animate-pulse">{LOADING_STEPS[loadingStepIdx]}</p>
                 </div>
               </div>
             </div>
@@ -415,39 +439,85 @@ const App = () => {
         )}
 
         {!data && !loading && (
-          <div className="border-4 border-dashed border-[#DCDCD3] rounded-[3rem] p-40 flex flex-col items-center text-center bg-white shadow-sm transition-all hover:shadow-xl hover:border-black/10">
-            <div className="w-28 h-28 bg-[#E8E8E1] rounded-[2.5rem] flex items-center justify-center mb-10 shadow-inner"><FileText className="w-14 h-14 text-black" /></div>
-            <h2 className="text-6xl font-black mb-6 text-black tracking-tightest">Frugality first.</h2>
-            <p className="text-[#6B7280] max-w-sm mb-14 text-2xl font-bold leading-tight">Institutional OCR for your multi-page banking ledgers.</p>
-            <button onClick={() => fileInputRef.current?.click()} className="px-14 py-8 bg-[#CEFD2F] text-black rounded-3xl font-black hover:brightness-110 transition-all flex items-center gap-6 group text-3xl shadow-[0_16px_48px_rgba(206,253,47,0.35)]">Begin Protocol <ChevronRight className="w-10 h-10 group-hover:translate-x-2 transition-transform" /></button>
+          <div className="relative group overflow-hidden border border-[#D1D1CB] border-dashed rounded-[4rem] p-32 md:p-48 flex flex-col items-center text-center bg-white/50 backdrop-blur-sm shadow-[0_20px_50px_rgba(0,0,0,0.04)] transition-all hover:shadow-2xl hover:bg-white">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/[0.01] pointer-events-none"></div>
+            <div className="w-32 h-32 bg-black rounded-[3rem] flex items-center justify-center mb-12 shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500">
+              <FileText className="w-16 h-16 text-[#CEFD2F]" />
+            </div>
+            <h2 className="text-7xl font-black mb-8 text-black tracking-tighter max-w-2xl leading-[0.9]">Unlock Capital Efficiency.</h2>
+            <p className="text-gray-500 max-w-sm mb-16 text-xl font-bold leading-tight uppercase tracking-tight">Upload institutional banking files for real-time visualization.</p>
+            <button 
+              onClick={() => fileInputRef.current?.click()} 
+              className="px-12 py-7 bg-[#CEFD2F] text-black rounded-[2rem] font-black hover:scale-105 active:scale-95 transition-all flex items-center gap-6 group text-2xl shadow-[0_20px_60px_rgba(206,253,47,0.4)]"
+            >
+              Start Analysis <ChevronRight className="w-8 h-8 group-hover:translate-x-2 transition-transform duration-300" />
+            </button>
           </div>
         )}
 
         {data && !loading && (
-          <div className="space-y-14 animate-in fade-in duration-1000 slide-in-from-bottom-8">
+          <div className="space-y-16 animate-in fade-in duration-1000 slide-in-from-bottom-12">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              <StatCard title="Spend" value={`$${Number(data.summary.totalSpend).toLocaleString()}`} change="+12.5%" isPositive={false} />
-              <StatCard title="Treasury" value={`$${Number(data.summary.totalBudget).toLocaleString()}`} change="-2.1%" isPositive={true} />
-              <StatCard title="Cash Flow" value={cashFlowValue} change="Direct" isPositive={data.summary.cashFlow >= 0} />
-              <StatCard title="Top Area" value={String(data.summary.topCategory)} change="Volume" isPositive={false} />
+              <StatCard title="Total Burn" value={`$${Number(data.summary.totalSpend).toLocaleString()}`} change="+4.2%" isPositive={false} />
+              <StatCard title="Capital Reserves" value={`$${Number(data.summary.totalBudget).toLocaleString()}`} change="+1.8%" isPositive={true} />
+              <StatCard title="Net Cash Flow" value={cashFlowValue} change="Dynamic" isPositive={data.summary.cashFlow >= 0} />
+              <StatCard title="Top Velocity" value={String(data.summary.topCategory)} change="Volume" isPositive={false} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
               <Card 
                 title="Spend Intensity" 
-                subtitle={`${intensityView} transaction velocity`} 
+                subtitle={`${intensityView} Transaction Delta`} 
                 className="lg:col-span-2"
                 headerAction={<Toggle options={['Daily', 'Weekly']} active={intensityView} onChange={setIntensityView} />}
               >
-                <div className="w-full h-[450px] mt-6">
+                <div className="w-full h-[480px] mt-10">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={intensityView === 'Daily' ? data.charts.spendOverTime : data.charts.weeklySpend} margin={{ top: 20, right: 15, left: 0, bottom: 0 }}>
-                      <defs><linearGradient id="colorIntensity" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={RAMP_COLORS.black} stopOpacity={0.15}/><stop offset="95%" stopColor={RAMP_COLORS.black} stopOpacity={0}/></linearGradient></defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8E1" />
-                      <XAxis dataKey={intensityView === 'Daily' ? 'date' : 'week'} axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280', fontWeight: 900}} minTickGap={45} dy={12} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280', fontWeight: 900}} tickFormatter={(val) => `$${val}`} dx={-12} />
-                      <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', background: '#1A1A1A', color: '#FFFFFF', fontWeight: 900, padding: '20px' }} cursor={{stroke: '#CEFD2F', strokeWidth: 3}} />
-                      <Area type="monotone" dataKey="amount" stroke={RAMP_COLORS.black} strokeWidth={4} fillOpacity={1} fill="url(#colorIntensity)" animationDuration={1200} />
+                    <AreaChart data={intensityView === 'Daily' ? data.charts.spendOverTime : data.charts.weeklySpend} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorIntensity" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={RAMP_COLORS.black} stopOpacity={0.12}/>
+                          <stop offset="95%" stopColor={RAMP_COLORS.black} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="#EBEBEB" />
+                      <XAxis 
+                        dataKey={intensityView === 'Daily' ? 'date' : 'week'} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{fontSize: 9, fill: '#999', fontWeight: 900, textAnchor: 'middle'}} 
+                        minTickGap={40} 
+                        dy={15} 
+                        className="uppercase tracking-widest"
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{fontSize: 9, fill: '#999', fontWeight: 900}} 
+                        tickFormatter={(val) => `$${val}`} 
+                        dx={-15} 
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          borderRadius: '2rem', 
+                          border: 'none', 
+                          background: '#000', 
+                          color: '#FFF', 
+                          fontWeight: 900, 
+                          padding: '24px',
+                          boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
+                        }} 
+                        cursor={{stroke: '#CEFD2F', strokeWidth: 2}} 
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="amount" 
+                        stroke={RAMP_COLORS.black} 
+                        strokeWidth={4} 
+                        fillOpacity={1} 
+                        fill="url(#colorIntensity)" 
+                        animationDuration={2000} 
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -455,70 +525,72 @@ const App = () => {
 
               <Card 
                 title="Allocation" 
-                subtitle={`Portfolio by ${allocationView.toLowerCase()}`}
+                subtitle={`Distribution Logic`}
                 headerAction={<Toggle options={['Vendors', 'Categories']} active={allocationView} onChange={setAllocationView} />}
                 className="flex flex-col"
                 padding="px-8 pt-20 pb-12"
               >
                 {allocationView === 'Categories' ? (
-                  <div className="flex flex-col h-full justify-between min-h-[680px]">
-                    <div className="w-full h-[360px] flex items-center justify-center relative">
-                      {data.charts.categoryDistribution?.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RePieChart>
-                            <Pie
-                              data={data.charts.categoryDistribution}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={85}
-                              outerRadius={125}
-                              paddingAngle={8}
-                              dataKey="percentage"
-                              nameKey="category"
-                              animationDuration={1800}
-                              stroke="none"
-                            >
-                              {data.charts.categoryDistribution.map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={RAMP_COLORS.chart[index % RAMP_COLORS.chart.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip content={<CustomPieTooltip />} />
-                          </RePieChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-gray-300 opacity-20">
-                          <PieChartIcon className="w-20 h-20 mb-3" />
-                          <p className="text-sm font-black uppercase tracking-widest">No Activity</p>
-                        </div>
-                      )}
+                  <div className="flex flex-col h-full justify-between min-h-[600px]">
+                    <div className="w-full h-[320px] flex items-center justify-center relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RePieChart>
+                          <Pie
+                            data={data.charts.categoryDistribution}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={75}
+                            outerRadius={115}
+                            paddingAngle={6}
+                            dataKey="percentage"
+                            nameKey="category"
+                            animationDuration={2000}
+                            stroke="none"
+                          >
+                            {data.charts.categoryDistribution.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={RAMP_COLORS.chart[index % RAMP_COLORS.chart.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomPieTooltip />} />
+                        </RePieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <Activity className="w-8 h-8 text-black mb-1 opacity-20" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">Composition</span>
+                      </div>
                     </div>
-                    <div className="mt-16 space-y-7 px-4 overflow-y-auto max-h-[320px] pb-10 custom-scrollbar">
+                    <div className="mt-12 space-y-5 px-4 overflow-y-auto max-h-[300px] custom-scrollbar">
                       {data.charts.categoryDistribution?.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between group py-2 border-b border-[#F0F0E8] last:border-0 hover:border-black transition-colors">
+                        <div key={i} className="flex items-center justify-between group py-3 border-b border-gray-50 last:border-0 hover:border-black transition-all duration-300">
                           <div className="flex items-center gap-4">
-                            <div className="w-5 h-5 rounded shadow-sm" style={{ background: RAMP_COLORS.chart[i % RAMP_COLORS.chart.length] }}></div>
-                            <span className="text-black font-black text-xs uppercase tracking-[0.15em] whitespace-nowrap overflow-hidden text-ellipsis max-w-[180px]">
+                            <div className="w-4 h-4 rounded-full shadow-sm" style={{ background: RAMP_COLORS.chart[i % RAMP_COLORS.chart.length] }}></div>
+                            <span className="text-black font-black text-[11px] uppercase tracking-[0.15em] whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]">
                               {String(item.category)}
                             </span>
                           </div>
-                          <span className="font-black text-black tabular-nums text-sm">{Number(item.percentage).toFixed(1)}%</span>
+                          <span className="font-black text-black tabular-nums text-xs">{Number(item.percentage).toFixed(1)}%</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-8 mt-10 pb-12 h-full min-h-[680px] overflow-y-auto custom-scrollbar">
+                  <div className="space-y-6 mt-8 pb-10 h-full min-h-[600px] overflow-y-auto custom-scrollbar">
                     {data.charts.vendorSpend?.map((vendor, i) => (
-                      <div key={i} className="group">
+                      <div key={i} className="group p-1">
                         <div className="flex justify-between items-center mb-3">
-                          <span className="text-xs font-black uppercase tracking-tight flex items-center gap-3 max-w-[75%] overflow-hidden text-ellipsis whitespace-nowrap">
-                            <ShoppingBag className="w-4 h-4 text-gray-400 group-hover:text-black transition-colors" />
+                          <span className="text-[11px] font-black uppercase tracking-tight flex items-center gap-3 max-w-[70%] overflow-hidden text-ellipsis whitespace-nowrap text-black">
+                            <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-[#CEFD2F] transition-colors">
+                              <ShoppingBag className="w-3 h-3 text-black" />
+                            </div>
                             {vendor.vendor}
                           </span>
-                          <span className="font-black tabular-nums text-sm">${Number(vendor.amount).toLocaleString()}</span>
+                          <span className="font-black tabular-nums text-xs">${Number(vendor.amount).toLocaleString()}</span>
                         </div>
-                        <div className="h-2.5 w-full bg-gray-50 rounded-full overflow-hidden border border-[#DCDCD3]">
-                          <div className="h-full bg-black transition-all duration-1500 ease-out" style={{ width: `${(vendor.amount / data.summary.totalSpend) * 100}%` }}></div>
+                        <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden border border-[#EEE]">
+                          <div 
+                            className="h-full bg-black group-hover:bg-black transition-all duration-1500 ease-out" 
+                            style={{ width: `${(vendor.amount / data.summary.totalSpend) * 100}%` }}
+                          ></div>
                         </div>
                       </div>
                     ))}
@@ -527,66 +599,68 @@ const App = () => {
               </Card>
             </div>
 
-            <section className="pt-24 space-y-14">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b-[6px] border-black pb-10">
-                <div className="flex items-center gap-8">
-                  <div className="p-6 bg-black text-[#CEFD2F] rounded-3xl shadow-2xl"><Lightbulb className="w-12 h-12" /></div>
+            <section className="pt-24 space-y-16">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 border-b-[8px] border-black pb-12">
+                <div className="flex items-center gap-10">
+                  <div className="p-8 bg-black text-[#CEFD2F] rounded-[2.5rem] shadow-2xl scale-110 -rotate-2"><Lightbulb className="w-12 h-12" /></div>
                   <div>
-                    <h2 className="text-7xl font-black text-black tracking-tightest uppercase">Efficiency Protocol.</h2>
-                    <p className="text-2xl text-[#6B7280] font-bold">High-velocity savings synthesized from institution-wide ledgers.</p>
+                    <h2 className="text-7xl font-black text-black tracking-tightest uppercase leading-[0.8]">Strategic Alpha.</h2>
+                    <p className="text-2xl text-gray-400 font-bold mt-2">Synthesis of automated ROI vectors and liquidity signals.</p>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
-                <div className="space-y-8">
-                  <div className="flex items-center gap-4 px-3">
-                    <History className="w-6 h-6 text-black" />
-                    <h3 className="text-sm font-black uppercase tracking-[0.4em] text-black">Observation Matrices</h3>
+                <div className="space-y-10">
+                  <div className="flex items-center gap-4 px-2">
+                    <Activity className="w-6 h-6 text-black" />
+                    <h3 className="text-xs font-black uppercase tracking-[0.5em] text-black italic">Signal Matrices</h3>
                   </div>
                   <div className="grid gap-8">
                     {data.insights.map((insight, idx) => (
-                      <div key={idx} className="p-10 bg-white border border-[#DCDCD3] rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all group flex items-start gap-8 border-l-[16px] border-l-black">
-                        <div className="w-16 h-16 rounded-[1.5rem] bg-[#E8E8E1] flex items-center justify-center flex-shrink-0 group-hover:bg-[#CEFD2F] group-hover:text-black transition-all duration-500"><TrendingUp className="w-8 h-8" /></div>
+                      <div key={idx} className="p-10 bg-white border border-[#D1D1CB] rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group flex items-start gap-10 border-l-[20px] border-l-black">
+                        <div className="w-16 h-16 rounded-2xl bg-[#F5F5F2] flex items-center justify-center flex-shrink-0 group-hover:bg-[#CEFD2F] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
+                          <TrendingUp className="w-8 h-8 text-black" />
+                        </div>
                         <div className="flex-1">
-                          <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Signal Vector #{idx + 1}</p>
-                          <p className="text-2xl text-[#1A1A1A] leading-tight font-black tracking-tight">{insight}</p>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-3">Signal Vector ID {idx + 1}</p>
+                          <p className="text-2xl text-black leading-tight font-black tracking-tight uppercase italic">{insight}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="space-y-8">
-                  <div className="flex items-center gap-4 px-3">
+                <div className="space-y-10">
+                  <div className="flex items-center gap-4 px-2">
                     <Target className="w-6 h-6 text-black" />
-                    <h3 className="text-sm font-black uppercase tracking-[0.4em] text-black">Strategic ROI vectors</h3>
+                    <h3 className="text-xs font-black uppercase tracking-[0.5em] text-black italic">Execution Protocols</h3>
                   </div>
                   <div className="grid gap-8">
                     {data.suggestions?.sort((a, b) => b.potentialSavings - a.potentialSavings).map((suggestion, idx) => {
                       const isHigh = suggestion.impact === 'High';
                       return (
-                        <div key={idx} className={`p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group transition-all duration-500 border-2 ${isHigh ? 'bg-black text-white border-black' : 'bg-white border-[#DCDCD3] text-black'}`}>
-                          <div className="absolute top-0 right-0 p-10">
-                             <Zap className={`w-10 h-10 ${isHigh ? 'text-[#CEFD2F]' : 'text-gray-300 opacity-25 group-hover:opacity-100 transition-opacity'}`} />
+                        <div key={idx} className={`p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden group transition-all duration-700 border-2 ${isHigh ? 'bg-black text-white border-black' : 'bg-white border-[#D1D1CB] text-black hover:border-black'}`}>
+                          <div className="absolute top-0 right-0 p-12 translate-x-4 -translate-y-4">
+                             <Zap className={`w-14 h-14 ${isHigh ? 'text-[#CEFD2F] opacity-100' : 'text-black opacity-10 group-hover:opacity-100 transition-opacity'}`} />
                           </div>
-                          <div className="flex flex-col h-full">
-                            <div className="flex items-center gap-5 mb-8">
-                              <span className={`px-5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-[0.2em] ${
-                                isHigh ? 'bg-[#CEFD2F] text-black' : 'bg-gray-100 text-black'
+                          <div className="flex flex-col h-full relative z-10">
+                            <div className="flex items-center gap-6 mb-10">
+                              <span className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] ${
+                                isHigh ? 'bg-[#CEFD2F] text-black' : 'bg-black text-white'
                               }`}>
                                 {suggestion.impact} Impact
                               </span>
                               {suggestion.potentialSavings > 0 && (
-                                <span className={`text-[11px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border-2 ${isHigh ? 'text-white border-white/20 bg-white/5' : 'text-black bg-gray-50 border-gray-100'}`}>
-                                  Est. Save: ${suggestion.potentialSavings.toLocaleString()}
-                                </span>
+                                <div className={`text-[10px] font-black uppercase tracking-[0.3em] px-5 py-2 rounded-full border-2 ${isHigh ? 'text-white border-white/20' : 'text-black border-black/5 bg-gray-50'}`}>
+                                  Potential Save: <span className={isHigh ? 'text-[#CEFD2F]' : 'text-green-600'}>${suggestion.potentialSavings.toLocaleString()}</span>
+                                </div>
                               )}
                             </div>
-                            <h4 className="text-4xl font-black mb-6 tracking-tightest leading-none uppercase">{suggestion.title}</h4>
-                            <p className={`text-xl font-bold leading-snug flex-1 ${isHigh ? 'text-gray-400' : 'text-gray-500'}`}>{suggestion.description}</p>
-                            <div className={`mt-10 flex items-center gap-4 text-sm font-black hover:translate-x-3 transition-transform cursor-pointer w-fit uppercase tracking-[0.25em] ${isHigh ? 'text-[#CEFD2F]' : 'text-black'}`}>
-                              Execute Savings <ChevronRight className="w-7 h-7" />
+                            <h4 className="text-4xl font-black mb-8 tracking-tighter leading-none uppercase italic">{suggestion.title}</h4>
+                            <p className={`text-xl font-bold leading-relaxed flex-1 ${isHigh ? 'text-gray-400' : 'text-gray-500'}`}>{suggestion.description}</p>
+                            <div className={`mt-12 flex items-center gap-5 text-sm font-black group-hover:translate-x-4 transition-transform cursor-pointer w-fit uppercase tracking-[0.3em] ${isHigh ? 'text-[#CEFD2F]' : 'text-black'}`}>
+                              Execute Vector <ChevronRight className="w-8 h-8" />
                             </div>
                           </div>
                         </div>
@@ -599,6 +673,47 @@ const App = () => {
           </div>
         )}
       </main>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+          font-family: 'Inter', sans-serif;
+        }
+
+        .tracking-tightest {
+          letter-spacing: -0.05em;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #D1D1CB;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #000;
+        }
+
+        @media print {
+          .lg\\:ml-64 { margin-left: 0; }
+          aside, button, header .flex { display: none !important; }
+          .p-8 { padding: 0 !important; }
+          body { background: white !important; }
+        }
+
+        @keyframes duration-1500 {
+          animation-duration: 1500ms;
+        }
+
+        .shadow-3xl {
+          box-shadow: 0 40px 100px -20px rgba(0,0,0,0.4);
+        }
+      `}</style>
     </div>
   );
 };
