@@ -57,12 +57,12 @@ const RAMP_COLORS = {
 };
 
 const LOADING_STEPS = [
-  "Ingesting document data...",
-  "OCR: Extracting ledger balances...",
-  "Cross-referencing high-volume vendors...",
-  "Analyzing recurring payment signatures...",
-  "Calculating ROI-driven distributions...",
-  "Synthesizing high-impact savings strategies...",
+  "Ingesting BECU document structure...",
+  "OCR: Extracting deposit & withdrawal ledgers...",
+  "Cross-referencing summary activity tables...",
+  "Identifying recurring vendor signatures...",
+  "Calculating institution-wide cash flow...",
+  "Synthesizing ROI efficiency protocols...",
   "Finalizing visualization frames..."
 ];
 
@@ -157,7 +157,7 @@ const StatCard = ({ title, value, change, isPositive }: { title: string, value: 
   const textColor = isNeutral ? (value.startsWith('+') ? 'text-green-600' : 'text-red-600') : (isPositive ? 'text-green-600' : 'text-red-600');
   
   return (
-    <Card className="flex flex-col justify-between h-full bg-white" padding="px-8 pt-20 pb-12">
+    <Card className="flex flex-col justify-between h-full bg-white" padding="px-8 pt-24 pb-12">
       <div className="flex justify-between items-start mb-8">
         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</span>
         <div className={`flex items-center text-[11px] font-black px-2 py-0.5 rounded-full ${isPositive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -175,12 +175,12 @@ const StatCard = ({ title, value, change, isPositive }: { title: string, value: 
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black p-4 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+      <div className="bg-black p-5 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-md">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">
           {payload[0].name}
         </p>
-        <p className="text-lg font-black text-[#CEFD2F] tabular-nums">
-          {Number(payload[0].value).toFixed(2)}%
+        <p className="text-2xl font-black text-[#CEFD2F] tabular-nums">
+          {Number(payload[0].value).toFixed(1)}%
         </p>
       </div>
     );
@@ -203,7 +203,7 @@ const App = () => {
     if (loading) {
       interval = window.setInterval(() => {
         setLoadingStepIdx((prev) => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev));
-      }, 3000);
+      }, 3500);
     } else {
       setLoadingStepIdx(0);
     }
@@ -216,15 +216,18 @@ const App = () => {
       setError(null);
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const prompt = `Analyze this financial statement with institutional CFO precision. 
-      Ramp focuses on high-velocity cash flow and deep-tier savings. 
-      Extract all transactions and synthesize them into the requested schema.
+      const prompt = `Task: Institutional-grade ledger analysis for a BECU Bank Statement.
+      Extract all account activity across multiple pages.
       
-      CRITICAL INSTRUCTIONS:
-      - OCR all ledger entries accurately.
-      - Calculate signed Cash Flow (Inflow - Outflow).
-      - Identify recurring vendor signatures (subscriptions).
-      - Provide 5 distinct, high-impact ROI insights for cost reduction.`;
+      CORE REQUIREMENTS:
+      1. Aggregate "Member Advantage Savings" and "Checking" balances.
+      2. Sum all "Withdrawals" for totalSpend.
+      3. Identify "Deposits" vs "Withdrawals" to calculate signed Cash Flow.
+      4. Group transactions into logical business categories (Food, Transfers, Utilities, etc.).
+      5. Look for recurring vendor signatures (e.g., Walmart, Shell, Safeway).
+      
+      IMPORTANT: This is a 7-page document. Ensure you correlate summary tables on page 1 with transaction details on pages 2-7. 
+      If a section is empty, return an empty array [] for that key.`;
 
       const responseSchema = {
         type: Type.OBJECT,
@@ -286,23 +289,23 @@ const App = () => {
       }
 
       const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview", // Upgraded to Pro for robust PDF/OCR analysis
+        model: "gemini-3-pro-preview", 
         contents: { parts },
         config: {
           responseMimeType: "application/json",
           responseSchema: responseSchema,
-          thinkingConfig: { thinkingBudget: 4000 } // Enable reasoning for ledger extraction
+          thinkingConfig: { thinkingBudget: 16384 } // High budget for multi-page banking statement
         }
       });
 
       const text = response.text;
-      if (!text) throw new Error("The AI returned an empty response. This may be due to a complex or unreadable document.");
+      if (!text) throw new Error("Processing failed: AI returned empty ledger.");
       
       const parsed = JSON.parse(text) as FinancialData;
       setData(parsed);
     } catch (err: any) {
       console.error("Gemini Analysis Error:", err);
-      setError(`Analysis Failed: ${err.message || "Please ensure the PDF is a clear bank or financial statement."}`);
+      setError(`Extraction Blocked: ${err.message || "Ensure the BECU statement is fully uploaded."}`);
     } finally {
       setLoading(false);
     }
@@ -379,33 +382,31 @@ const App = () => {
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
             <div className="flex-1 pt-1">
-              <h3 className="text-lg font-black uppercase tracking-widest mb-1">Processing Blocked</h3>
+              <h3 className="text-lg font-black uppercase tracking-widest mb-1">Extraction failure</h3>
               <p className="text-sm font-bold opacity-80 leading-relaxed">{error}</p>
-              <button 
-                onClick={() => setError(null)}
-                className="mt-4 px-6 py-2 bg-red-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-900 transition-colors"
-              >
-                Dismiss
-              </button>
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => fileInputRef.current?.click()} className="px-5 py-2 bg-red-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-900 transition-colors">Retry Upload</button>
+                <button onClick={() => setError(null)} className="px-5 py-2 bg-white border border-red-200 text-red-800 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-50 transition-colors">Dismiss</button>
+              </div>
             </div>
           </div>
         )}
 
         {loading && (
-          <div className="flex flex-col items-center justify-center py-32 text-center max-w-lg mx-auto animate-in fade-in">
-            <div className="relative mb-12">
+          <div className="flex flex-col items-center justify-center py-40 text-center max-w-lg mx-auto animate-in fade-in">
+            <div className="relative mb-14">
               <div className="absolute inset-0 bg-black rounded-full animate-ping opacity-5"></div>
-              <div className="relative bg-black rounded-full p-8 shadow-2xl">
-                <Loader2 className="w-14 h-14 text-[#CEFD2F] animate-spin" />
+              <div className="relative bg-black rounded-full p-10 shadow-2xl">
+                <Loader2 className="w-16 h-16 text-[#CEFD2F] animate-spin" />
               </div>
             </div>
-            <div className="w-full space-y-8">
-              <div className="h-2 w-full bg-[#DCDCD3] rounded-full overflow-hidden">
+            <div className="w-full space-y-10">
+              <div className="h-3 w-full bg-[#DCDCD3] rounded-full overflow-hidden">
                 <div className="h-full bg-black transition-all duration-1000 ease-in-out" style={{ width: `${((loadingStepIdx + 1) / LOADING_STEPS.length) * 100}%` }}></div>
               </div>
               <div className="space-y-4">
-                <h2 className="text-3xl font-black text-black tracking-tightest">Ramp Intelligence</h2>
-                <div className="flex items-center justify-center gap-3 text-[#6B7280] font-black uppercase text-[10px] tracking-[0.2em]">
+                <h2 className="text-4xl font-black text-black tracking-tightest uppercase">Ramp Extraction</h2>
+                <div className="flex items-center justify-center gap-3 text-[#6B7280] font-black uppercase text-xs tracking-[0.25em]">
                   <p>{LOADING_STEPS[loadingStepIdx]}</p>
                 </div>
               </div>
@@ -414,39 +415,39 @@ const App = () => {
         )}
 
         {!data && !loading && (
-          <div className="border border-[#DCDCD3] rounded-[2.5rem] p-32 flex flex-col items-center text-center bg-white shadow-sm transition-all hover:shadow-xl">
-            <div className="w-24 h-24 bg-[#E8E8E1] rounded-[2rem] flex items-center justify-center mb-10 shadow-inner"><FileText className="w-12 h-12 text-black" /></div>
-            <h2 className="text-5xl font-black mb-4 text-black tracking-tightest">Frugality first.</h2>
-            <p className="text-[#6B7280] max-w-sm mb-12 text-xl font-bold leading-tight">Drag and drop bank statements to surface institutional ROI.</p>
-            <button onClick={() => fileInputRef.current?.click()} className="px-12 py-6 bg-[#CEFD2F] text-black rounded-2xl font-black hover:brightness-110 transition-all flex items-center gap-4 group text-2xl shadow-[0_12px_40px_rgba(206,253,47,0.3)]">Get Started <ChevronRight className="w-8 h-8 group-hover:translate-x-2 transition-transform" /></button>
+          <div className="border-4 border-dashed border-[#DCDCD3] rounded-[3rem] p-40 flex flex-col items-center text-center bg-white shadow-sm transition-all hover:shadow-xl hover:border-black/10">
+            <div className="w-28 h-28 bg-[#E8E8E1] rounded-[2.5rem] flex items-center justify-center mb-10 shadow-inner"><FileText className="w-14 h-14 text-black" /></div>
+            <h2 className="text-6xl font-black mb-6 text-black tracking-tightest">Frugality first.</h2>
+            <p className="text-[#6B7280] max-w-sm mb-14 text-2xl font-bold leading-tight">Institutional OCR for your multi-page banking ledgers.</p>
+            <button onClick={() => fileInputRef.current?.click()} className="px-14 py-8 bg-[#CEFD2F] text-black rounded-3xl font-black hover:brightness-110 transition-all flex items-center gap-6 group text-3xl shadow-[0_16px_48px_rgba(206,253,47,0.35)]">Begin Protocol <ChevronRight className="w-10 h-10 group-hover:translate-x-2 transition-transform" /></button>
           </div>
         )}
 
         {data && !loading && (
-          <div className="space-y-12 animate-in fade-in duration-1000 slide-in-from-bottom-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="space-y-14 animate-in fade-in duration-1000 slide-in-from-bottom-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               <StatCard title="Spend" value={`$${Number(data.summary.totalSpend).toLocaleString()}`} change="+12.5%" isPositive={false} />
               <StatCard title="Treasury" value={`$${Number(data.summary.totalBudget).toLocaleString()}`} change="-2.1%" isPositive={true} />
               <StatCard title="Cash Flow" value={cashFlowValue} change="Direct" isPositive={data.summary.cashFlow >= 0} />
               <StatCard title="Top Area" value={String(data.summary.topCategory)} change="Volume" isPositive={false} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
               <Card 
                 title="Spend Intensity" 
                 subtitle={`${intensityView} transaction velocity`} 
                 className="lg:col-span-2"
                 headerAction={<Toggle options={['Daily', 'Weekly']} active={intensityView} onChange={setIntensityView} />}
               >
-                <div className="w-full h-[400px] mt-4">
+                <div className="w-full h-[450px] mt-6">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={intensityView === 'Daily' ? data.charts.spendOverTime : data.charts.weeklySpend} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+                    <AreaChart data={intensityView === 'Daily' ? data.charts.spendOverTime : data.charts.weeklySpend} margin={{ top: 20, right: 15, left: 0, bottom: 0 }}>
                       <defs><linearGradient id="colorIntensity" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={RAMP_COLORS.black} stopOpacity={0.15}/><stop offset="95%" stopColor={RAMP_COLORS.black} stopOpacity={0}/></linearGradient></defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8E1" />
-                      <XAxis dataKey={intensityView === 'Daily' ? 'date' : 'week'} axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280', fontWeight: 800}} minTickGap={40} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280', fontWeight: 800}} tickFormatter={(val) => `$${val}`} dx={-10} />
-                      <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', background: '#1A1A1A', color: '#FFFFFF', fontWeight: 900 }} cursor={{stroke: '#CEFD2F', strokeWidth: 2}} />
-                      <Area type="monotone" dataKey="amount" stroke={RAMP_COLORS.black} strokeWidth={3} fillOpacity={1} fill="url(#colorIntensity)" animationDuration={1000} />
+                      <XAxis dataKey={intensityView === 'Daily' ? 'date' : 'week'} axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280', fontWeight: 900}} minTickGap={45} dy={12} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#6B7280', fontWeight: 900}} tickFormatter={(val) => `$${val}`} dx={-12} />
+                      <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', background: '#1A1A1A', color: '#FFFFFF', fontWeight: 900, padding: '20px' }} cursor={{stroke: '#CEFD2F', strokeWidth: 3}} />
+                      <Area type="monotone" dataKey="amount" stroke={RAMP_COLORS.black} strokeWidth={4} fillOpacity={1} fill="url(#colorIntensity)" animationDuration={1200} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -457,11 +458,11 @@ const App = () => {
                 subtitle={`Portfolio by ${allocationView.toLowerCase()}`}
                 headerAction={<Toggle options={['Vendors', 'Categories']} active={allocationView} onChange={setAllocationView} />}
                 className="flex flex-col"
-                padding="px-8 pt-16 pb-12"
+                padding="px-8 pt-20 pb-12"
               >
                 {allocationView === 'Categories' ? (
-                  <div className="flex flex-col h-full justify-between min-h-[640px]">
-                    <div className="w-full h-[320px] flex items-center justify-center relative">
+                  <div className="flex flex-col h-full justify-between min-h-[680px]">
+                    <div className="w-full h-[360px] flex items-center justify-center relative">
                       {data.charts.categoryDistribution?.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                           <RePieChart>
@@ -469,12 +470,12 @@ const App = () => {
                               data={data.charts.categoryDistribution}
                               cx="50%"
                               cy="50%"
-                              innerRadius={75}
-                              outerRadius={105}
-                              paddingAngle={6}
+                              innerRadius={85}
+                              outerRadius={125}
+                              paddingAngle={8}
                               dataKey="percentage"
                               nameKey="category"
-                              animationDuration={1500}
+                              animationDuration={1800}
                               stroke="none"
                             >
                               {data.charts.categoryDistribution.map((_, index) => (
@@ -486,38 +487,38 @@ const App = () => {
                         </ResponsiveContainer>
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full text-gray-300 opacity-20">
-                          <PieChartIcon className="w-16 h-16 mb-2" />
-                          <p className="text-xs font-black uppercase tracking-widest">No Data</p>
+                          <PieChartIcon className="w-20 h-20 mb-3" />
+                          <p className="text-sm font-black uppercase tracking-widest">No Activity</p>
                         </div>
                       )}
                     </div>
-                    <div className="mt-16 space-y-6 px-2 overflow-y-auto max-h-[300px] pb-6">
+                    <div className="mt-16 space-y-7 px-4 overflow-y-auto max-h-[320px] pb-10 custom-scrollbar">
                       {data.charts.categoryDistribution?.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between group py-1.5 border-b border-[#F0F0E8] last:border-0">
-                          <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-sm shadow-sm" style={{ background: RAMP_COLORS.chart[i % RAMP_COLORS.chart.length] }}></div>
-                            <span className="text-black font-black text-[11px] uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis max-w-[170px]">
+                        <div key={i} className="flex items-center justify-between group py-2 border-b border-[#F0F0E8] last:border-0 hover:border-black transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className="w-5 h-5 rounded shadow-sm" style={{ background: RAMP_COLORS.chart[i % RAMP_COLORS.chart.length] }}></div>
+                            <span className="text-black font-black text-xs uppercase tracking-[0.15em] whitespace-nowrap overflow-hidden text-ellipsis max-w-[180px]">
                               {String(item.category)}
                             </span>
                           </div>
-                          <span className="font-black text-black tabular-nums text-xs">{Number(item.percentage).toFixed(1)}%</span>
+                          <span className="font-black text-black tabular-nums text-sm">{Number(item.percentage).toFixed(1)}%</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-7 mt-8 pb-10 h-full min-h-[640px] overflow-y-auto">
+                  <div className="space-y-8 mt-10 pb-12 h-full min-h-[680px] overflow-y-auto custom-scrollbar">
                     {data.charts.vendorSpend?.map((vendor, i) => (
                       <div key={i} className="group">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-[11px] font-black uppercase tracking-tight flex items-center gap-2 max-w-[70%] overflow-hidden text-ellipsis whitespace-nowrap">
-                            <ShoppingBag className="w-3 h-3 text-gray-400" />
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-xs font-black uppercase tracking-tight flex items-center gap-3 max-w-[75%] overflow-hidden text-ellipsis whitespace-nowrap">
+                            <ShoppingBag className="w-4 h-4 text-gray-400 group-hover:text-black transition-colors" />
                             {vendor.vendor}
                           </span>
                           <span className="font-black tabular-nums text-sm">${Number(vendor.amount).toLocaleString()}</span>
                         </div>
-                        <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
-                          <div className="h-full bg-black transition-all duration-1000" style={{ width: `${(vendor.amount / data.summary.totalSpend) * 100}%` }}></div>
+                        <div className="h-2.5 w-full bg-gray-50 rounded-full overflow-hidden border border-[#DCDCD3]">
+                          <div className="h-full bg-black transition-all duration-1500 ease-out" style={{ width: `${(vendor.amount / data.summary.totalSpend) * 100}%` }}></div>
                         </div>
                       </div>
                     ))}
@@ -526,66 +527,66 @@ const App = () => {
               </Card>
             </div>
 
-            <section className="pt-20 space-y-12">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-black pb-8">
-                <div className="flex items-center gap-6">
-                  <div className="p-5 bg-black text-[#CEFD2F] rounded-2xl shadow-xl"><Lightbulb className="w-10 h-10" /></div>
+            <section className="pt-24 space-y-14">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b-[6px] border-black pb-10">
+                <div className="flex items-center gap-8">
+                  <div className="p-6 bg-black text-[#CEFD2F] rounded-3xl shadow-2xl"><Lightbulb className="w-12 h-12" /></div>
                   <div>
-                    <h2 className="text-6xl font-black text-black tracking-tightest">Efficiency protocol.</h2>
-                    <p className="text-xl text-[#6B7280] font-bold">High-ROI savings optimized for institutional frugality.</p>
+                    <h2 className="text-7xl font-black text-black tracking-tightest uppercase">Efficiency Protocol.</h2>
+                    <p className="text-2xl text-[#6B7280] font-bold">High-velocity savings synthesized from institution-wide ledgers.</p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 px-2">
-                    <History className="w-5 h-5 text-black" />
-                    <h3 className="text-sm font-black uppercase tracking-[0.3em] text-black">Ledger analysis</h3>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4 px-3">
+                    <History className="w-6 h-6 text-black" />
+                    <h3 className="text-sm font-black uppercase tracking-[0.4em] text-black">Observation Matrices</h3>
                   </div>
-                  <div className="grid gap-6">
+                  <div className="grid gap-8">
                     {data.insights.map((insight, idx) => (
-                      <div key={idx} className="p-8 bg-white border border-[#DCDCD3] rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex items-start gap-6 border-l-[12px] border-l-black">
-                        <div className="w-14 h-14 rounded-2xl bg-[#E8E8E1] flex items-center justify-center flex-shrink-0 group-hover:bg-[#CEFD2F] group-hover:text-black transition-all duration-500"><TrendingUp className="w-7 h-7" /></div>
+                      <div key={idx} className="p-10 bg-white border border-[#DCDCD3] rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all group flex items-start gap-8 border-l-[16px] border-l-black">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-[#E8E8E1] flex items-center justify-center flex-shrink-0 group-hover:bg-[#CEFD2F] group-hover:text-black transition-all duration-500"><TrendingUp className="w-8 h-8" /></div>
                         <div className="flex-1">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Observation #{idx + 1}</p>
-                          <p className="text-xl text-[#1A1A1A] leading-tight font-black tracking-tight">{insight}</p>
+                          <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Signal Vector #{idx + 1}</p>
+                          <p className="text-2xl text-[#1A1A1A] leading-tight font-black tracking-tight">{insight}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 px-2">
-                    <Target className="w-5 h-5 text-black" />
-                    <h3 className="text-sm font-black uppercase tracking-[0.3em] text-black">Strategic vectors</h3>
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4 px-3">
+                    <Target className="w-6 h-6 text-black" />
+                    <h3 className="text-sm font-black uppercase tracking-[0.4em] text-black">Strategic ROI vectors</h3>
                   </div>
-                  <div className="grid gap-6">
+                  <div className="grid gap-8">
                     {data.suggestions?.sort((a, b) => b.potentialSavings - a.potentialSavings).map((suggestion, idx) => {
                       const isHigh = suggestion.impact === 'High';
                       return (
-                        <div key={idx} className={`p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group transition-all duration-500 ${isHigh ? 'bg-black text-white' : 'bg-white border border-[#DCDCD3] text-black'}`}>
-                          <div className="absolute top-0 right-0 p-8">
-                             <Zap className={`w-8 h-8 ${isHigh ? 'text-[#CEFD2F]' : 'text-gray-300 opacity-20 group-hover:opacity-100 transition-opacity'}`} />
+                        <div key={idx} className={`p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group transition-all duration-500 border-2 ${isHigh ? 'bg-black text-white border-black' : 'bg-white border-[#DCDCD3] text-black'}`}>
+                          <div className="absolute top-0 right-0 p-10">
+                             <Zap className={`w-10 h-10 ${isHigh ? 'text-[#CEFD2F]' : 'text-gray-300 opacity-25 group-hover:opacity-100 transition-opacity'}`} />
                           </div>
                           <div className="flex flex-col h-full">
-                            <div className="flex items-center gap-4 mb-6">
-                              <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                            <div className="flex items-center gap-5 mb-8">
+                              <span className={`px-5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-[0.2em] ${
                                 isHigh ? 'bg-[#CEFD2F] text-black' : 'bg-gray-100 text-black'
                               }`}>
                                 {suggestion.impact} Impact
                               </span>
                               {suggestion.potentialSavings > 0 && (
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${isHigh ? 'text-white/80 bg-white/10 border-white/20' : 'text-black bg-gray-50 border-gray-100'}`}>
+                                <span className={`text-[11px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border-2 ${isHigh ? 'text-white border-white/20 bg-white/5' : 'text-black bg-gray-50 border-gray-100'}`}>
                                   Est. Save: ${suggestion.potentialSavings.toLocaleString()}
                                 </span>
                               )}
                             </div>
-                            <h4 className="text-3xl font-black mb-4 tracking-tightest leading-none">{suggestion.title}</h4>
-                            <p className={`text-lg font-bold leading-snug flex-1 ${isHigh ? 'text-gray-400' : 'text-gray-500'}`}>{suggestion.description}</p>
-                            <div className={`mt-8 flex items-center gap-3 text-sm font-black hover:translate-x-2 transition-transform cursor-pointer w-fit uppercase tracking-widest ${isHigh ? 'text-[#CEFD2F]' : 'text-black'}`}>
-                              Execute protocol <ChevronRight className="w-5 h-5" />
+                            <h4 className="text-4xl font-black mb-6 tracking-tightest leading-none uppercase">{suggestion.title}</h4>
+                            <p className={`text-xl font-bold leading-snug flex-1 ${isHigh ? 'text-gray-400' : 'text-gray-500'}`}>{suggestion.description}</p>
+                            <div className={`mt-10 flex items-center gap-4 text-sm font-black hover:translate-x-3 transition-transform cursor-pointer w-fit uppercase tracking-[0.25em] ${isHigh ? 'text-[#CEFD2F]' : 'text-black'}`}>
+                              Execute Savings <ChevronRight className="w-7 h-7" />
                             </div>
                           </div>
                         </div>
